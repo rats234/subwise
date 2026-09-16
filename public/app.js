@@ -294,27 +294,70 @@
     setTimeout(() => ($("email-copy-btn").textContent = "Copy"), 1200);
   });
 
-  // ---------- upgrade ----------
-  $("upgrade-btn").addEventListener("click", async () => {
+  // ---------- upgrade (manual PayPal + unlock code) ----------
+  async function loadBillingConfig() {
     try {
-      const { url } = await api("/api/billing/checkout", { method: "POST" });
-      location.href = url;
+      const cfg = await api("/api/billing/config");
+      const link = $("coffee-link");
+      if (cfg.paypal_link) {
+        link.href = cfg.paypal_link;
+      } else {
+        link.href = "#";
+        link.textContent = "Support link coming soon";
+      }
     } catch (err) {
-      alert(err.message);
+      // Non-fatal — the upgrade panel just won't have a working coffee link.
     }
+  }
+
+  $("redeem-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const code = $("redeem-code").value.trim();
+    const btn = $("redeem-btn");
+    $("redeem-error").hidden = true;
+    if (!code) return;
+    btn.disabled = true;
+    try {
+      await api("/api/billing/redeem", { method: "POST", body: { code } });
+      $("redeem-code").value = "";
+      const me = await api("/api/auth/me");
+      state.user = me;
+      await refresh();
+    } catch (err) {
+      $("redeem-error").textContent = err.message;
+      $("redeem-error").hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- installable app prompt ----------
+  let deferredInstallPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    $("install-btn").hidden = false;
+  });
+  $("install-btn").addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    $("install-btn").hidden = true;
+    await deferredInstallPrompt.prompt();
+    deferredInstallPrompt = null;
+  });
+  window.addEventListener("appinstalled", () => {
+    $("install-btn").hidden = true;
   });
 
   // ---------- boot ----------
   (async () => {
-    const params = new URLSearchParams(location.search);
     const user = await api("/api/auth/me");
     if (user) {
       state.user = user;
       await showApp();
-      if (params.get("upgraded") === "1") {
-        alert("Payment received — Premium features are now unlocked. It may take a few seconds to reflect.");
-        setTimeout(refresh, 1500);
-      }
+    }
+    loadBillingConfig();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
   })();
 })();

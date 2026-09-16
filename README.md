@@ -3,12 +3,13 @@
 A subscription tracker: log every recurring bill, see total monthly/yearly spend,
 get warned before renewals hit, flag subscriptions to cancel, and (on the
 premium tier) get an AI-drafted cancellation/negotiation email. Free tier
-caps at 5 tracked subscriptions; premium is unlimited + AI emails, sold via
-Stripe Checkout.
+caps at 5 tracked subscriptions; premium is unlocked on the honor system —
+someone sends a coffee via your PayPal link, you email them back a shared
+unlock code, they paste it in.
 
-This is a real, working MVP — auth, database, billing, and the dashboard all
-function today. What's missing before you can charge strangers real money is
-listed under "Before you launch" below.
+This is a real, working MVP — auth, database, and the dashboard all function
+today. There's no automated payment processing by design (see "Premium /
+support" below); everything else is real.
 
 ## Why this idea
 
@@ -48,24 +49,34 @@ for sessions) instead of a local SQLite file:
    the connection string as `DATABASE_URL`.
 2. **Render** or **Railway**: push this folder to a GitHub repo, connect it,
    set the start command to `node server.js`, and add the env vars from
-   `.env.example` (`SESSION_SECRET`, `DATABASE_URL`, and Stripe/Anthropic
-   keys once you're ready for those).
+   `.env.example` (`SESSION_SECRET`, `DATABASE_URL`, and `PAYPAL_LINK`/
+   `UNLOCK_CODE`/Anthropic keys once you're ready for those).
 3. **Domain** (optional at first): a `.com` is ~$12/year. Not needed to
    validate demand — ship on the free `*.onrender.com`/`*.up.railway.app`
    URL first, buy a domain once people are actually using it.
-4. **Stripe**: free to set up, no monthly fee — they take ~2.9% + $0.30 per
-   transaction. Start in **test mode**, confirm the checkout → webhook →
-   premium-unlock flow works end to end with a test card
-   (`4242 4242 4242 4242`), then flip to live keys.
-5. **Anthropic API key** (optional): the AI email feature costs fractions of
+4. **Anthropic API key** (optional): the AI email feature costs fractions of
    a cent per draft on Haiku. Skip it entirely at first — the template
    fallback is genuinely fine — and add it once premium users exist.
 
-**Budget recommendation:** launch on $0 (Render free tier + Neon free tier +
-Stripe's pay-as-you-go pricing, no upfront cost). Both free tiers mean the
-app can take a few seconds to "wake up" after being idle — worth it at zero
-users. Upgrade to Render's paid web service (~$7/mo) once cold starts
-actually annoy real users.
+**Budget recommendation:** launch on $0 (Render free tier + Neon free tier,
+no upfront cost). Both free tiers mean the app can take a few seconds to
+"wake up" after being idle — worth it at zero users. Upgrade to Render's
+paid web service (~$7/mo) once cold starts actually annoy real users.
+
+## Premium / support
+
+There's no payment processor wired in on purpose — no business entity or
+bank account is required to run this. Instead:
+
+1. Set `PAYPAL_LINK` to your paypal.me (or Buy Me a Coffee) URL.
+2. Set `UNLOCK_CODE` to any secret word or phrase.
+3. When someone sends a coffee, email them that code by hand. They paste it
+   into the "Redeem code" box on the dashboard, and their account flips to
+   Premium instantly (no webhook, no card data ever touches this app).
+
+This is fully manual and doesn't scale past a handful of people — that's the
+point for now. If it ever gets popular enough that hand-emailing codes is a
+bottleneck, that's a good problem to have and the time to revisit Stripe.
 
 ## Before you launch to real strangers
 
@@ -82,9 +93,9 @@ Do these before taking real payments from people who aren't you:
 - **Turn on point-in-time backups on Neon** (or your Postgres host) once
   real users' data is on the line — the free tier keeps some history, but
   check the current retention window before relying on it.
-- **Test the Stripe webhook against your live URL** (Stripe's CLI has a
-  `stripe listen --forward-to` command for this) before flipping to live
-  keys, so a real charge can't succeed while the unlock silently fails.
+- **Rotate `UNLOCK_CODE` occasionally.** It's a single shared secret — fine
+  for a handful of supporters, but treat it like a low-value password, not
+  a real access control.
 
 ## Where to take it next
 
@@ -100,13 +111,15 @@ Do these before taking real payments from people who aren't you:
 ## Project layout
 
 ```
-server.js              — entry point, Postgres-backed sessions, Stripe webhook (raw body)
+server.js              — entry point, Postgres-backed sessions
 lib/db.js               — Postgres connection + schema (users, subscriptions, price_history)
 lib/middleware.js        — auth guard, free-tier subscription limit
 lib/emailTemplate.js     — zero-cost fallback cancellation email
 routes/auth.js           — register / login / logout / me
 routes/subscriptions.js  — CRUD + summary (spend totals, upcoming renewals)
-routes/billing.js        — Stripe Checkout session creation + status
+routes/billing.js        — premium status, PayPal link config, unlock-code redemption
 routes/ai.js              — AI (or template) cancellation email draft
 public/                  — the dashboard (vanilla HTML/CSS/JS, no build step)
+public/manifest.json     — PWA manifest (installable "Add to Home Screen")
+public/sw.js              — service worker caching the static app shell
 ```

@@ -4,6 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>SubWise — subscription tracker</title>
+  <meta name="description" content="Track every subscription, catch price hikes before they hit, and cancel what you don't use." />
+  <meta name="theme-color" content="#2f5d50" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icons/favicon-64.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SubWise" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -45,6 +53,7 @@
       <div class="brand"><span class="mark">◆</span><h1>SubWise</h1></div>
       <div class="actions">
         <span id="plan-badge" class="plan-badge">Free plan</span>
+        <button id="install-btn" class="ghost small" hidden>⤓ Install app</button>
         <button id="add-sub-btn" class="primary small">+ Add subscription</button>
         <button id="logout-btn" class="ghost small">Log out</button>
       </div>
@@ -86,13 +95,24 @@
 
         <div id="upgrade-panel" class="panel upgrade-panel">
           <div class="label" style="color:var(--ink-soft); font-size:12px; text-transform:uppercase; letter-spacing:.03em; font-weight:600;">Premium</div>
-          <div class="price">$4/mo</div>
           <ul>
             <li>Unlimited tracked subscriptions</li>
             <li>AI-drafted cancellation &amp; negotiation emails</li>
             <li>Price-hike history on every subscription</li>
           </ul>
-          <button id="upgrade-btn" class="primary">Upgrade</button>
+          <p class="sub" style="margin: 4px 0 12px;">
+            SubWise runs on an honor system, not a card form: send a coffee,
+            then drop the unlock code you get back into the box below.
+          </p>
+          <a id="coffee-link" class="primary" style="display:block; text-align:center; text-decoration:none; margin-bottom:12px;" href="#" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+          <form id="redeem-form">
+            <div class="field">
+              <label for="redeem-code">Unlock code</label>
+              <input id="redeem-code" placeholder="Paste the code you were sent" autocomplete="off" />
+            </div>
+            <div id="redeem-error" class="auth-error" hidden></div>
+            <button type="submit" class="ghost" style="width:100%;" id="redeem-btn">Redeem code</button>
+          </form>
         </div>
       </div>
     </div>
