@@ -23,45 +23,49 @@ a one-off tool.
 
 ```bash
 npm install
-cp .env.example .env   # then edit SESSION_SECRET at minimum
+cp .env.example .env   # then edit SESSION_SECRET and DATABASE_URL
 npm start
 ```
+
+`DATABASE_URL` must point at a Postgres database — sign up free at
+[neon.tech](https://neon.tech) (no card needed), create a project, and copy
+its connection string in. The app creates its own tables on first boot.
 
 Visit `http://localhost:3000`, sign up, and start adding subscriptions. With
 no Stripe/Anthropic keys set, everything works except real payments (you'll
 get a clear "not configured" message) and AI email drafts fall back to a
 solid template.
 
-Data lives in `data.sqlite` in the project root — delete it to reset.
-
 ## Deployment (recommended path, ~$0 to start)
 
-SQLite + a single Node process is enough for hundreds of early users and
-keeps hosting free or near-free:
+Render's free web service spins down after 15 minutes idle and wipes its
+local disk on every restart, so the database has to live outside it. Neon's
+free Postgres doesn't expire and scales to zero when idle instead of getting
+wiped, which is why this app uses Postgres (via `pg` + `connect-pg-simple`
+for sessions) instead of a local SQLite file:
 
-1. **Render** or **Railway** (both have free/low tiers with a persistent
-   disk, which SQLite needs — Vercel/Netlify's serverless functions do NOT
-   keep a disk between requests, so avoid those for this app as-is).
-   - Push this folder to a GitHub repo, connect it, set the start command to
-     `node server.js`, and add the env vars from `.env.example`.
-   - Mount a persistent disk at the project root (or set `DB_PATH` to point
-     at the mounted volume) so `data.sqlite` survives restarts/deploys.
-2. **Domain** (optional at first): a `.com` is ~$12/year. Not needed to
+1. **Neon** ([neon.tech](https://neon.tech)): sign up, create a project, copy
+   the connection string as `DATABASE_URL`.
+2. **Render** or **Railway**: push this folder to a GitHub repo, connect it,
+   set the start command to `node server.js`, and add the env vars from
+   `.env.example` (`SESSION_SECRET`, `DATABASE_URL`, and Stripe/Anthropic
+   keys once you're ready for those).
+3. **Domain** (optional at first): a `.com` is ~$12/year. Not needed to
    validate demand — ship on the free `*.onrender.com`/`*.up.railway.app`
    URL first, buy a domain once people are actually using it.
-3. **Stripe**: free to set up, no monthly fee — they take ~2.9% + $0.30 per
+4. **Stripe**: free to set up, no monthly fee — they take ~2.9% + $0.30 per
    transaction. Start in **test mode**, confirm the checkout → webhook →
    premium-unlock flow works end to end with a test card
    (`4242 4242 4242 4242`), then flip to live keys.
-4. **Anthropic API key** (optional): the AI email feature costs fractions of
+5. **Anthropic API key** (optional): the AI email feature costs fractions of
    a cent per draft on Haiku. Skip it entirely at first — the template
    fallback is genuinely fine — and add it once premium users exist.
 
-**Budget recommendation:** launch on $0 (free hosting tier + Stripe's
-pay-as-you-go pricing, no upfront cost). Spend your first real dollars on a
-domain (~$12/yr) once you have users, and only move off SQLite to a hosted
-Postgres (Supabase/Neon free tiers exist) if you outgrow a single server —
-not before.
+**Budget recommendation:** launch on $0 (Render free tier + Neon free tier +
+Stripe's pay-as-you-go pricing, no upfront cost). Both free tiers mean the
+app can take a few seconds to "wake up" after being idle — worth it at zero
+users. Upgrade to Render's paid web service (~$7/mo) once cold starts
+actually annoy real users.
 
 ## Before you launch to real strangers
 
@@ -75,8 +79,9 @@ Do these before taking real payments from people who aren't you:
   brute-force login attempts.
 - **Turn on HTTPS** — Render/Railway do this automatically; just don't skip
   it if you self-host.
-- **Back up `data.sqlite` regularly** if you stay on SQLite — it's one file;
-  losing it loses everyone's data.
+- **Turn on point-in-time backups on Neon** (or your Postgres host) once
+  real users' data is on the line — the free tier keeps some history, but
+  check the current retention window before relying on it.
 - **Test the Stripe webhook against your live URL** (Stripe's CLI has a
   `stripe listen --forward-to` command for this) before flipping to live
   keys, so a real charge can't succeed while the unlock silently fails.
@@ -95,8 +100,8 @@ Do these before taking real payments from people who aren't you:
 ## Project layout
 
 ```
-server.js              — entry point, session config, Stripe webhook (raw body)
-lib/db.js               — SQLite schema (users, subscriptions, price_history)
+server.js              — entry point, Postgres-backed sessions, Stripe webhook (raw body)
+lib/db.js               — Postgres connection + schema (users, subscriptions, price_history)
 lib/middleware.js        — auth guard, free-tier subscription limit
 lib/emailTemplate.js     — zero-cost fallback cancellation email
 routes/auth.js           — register / login / logout / me
