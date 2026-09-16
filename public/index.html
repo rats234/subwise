@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SubWise — subscription tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+  <!-- ============ AUTH SCREEN ============ -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo"><span class="mark">◆</span><strong>SubWise</strong></div>
+      <h1>Know what you're paying for</h1>
+      <p class="sub">Track every subscription, catch price hikes before they hit, and cancel what you don't use.</p>
+
+      <div class="auth-tabs">
+        <button id="tab-login" class="active" type="button">Log in</button>
+        <button id="tab-register" type="button">Sign up</button>
+      </div>
+
+      <div id="auth-error" class="auth-error" hidden></div>
+
+      <form id="auth-form">
+        <div class="field">
+          <label for="auth-email">Email</label>
+          <input id="auth-email" type="email" autocomplete="email" required />
+        </div>
+        <div class="field">
+          <label for="auth-password">Password</label>
+          <input id="auth-password" type="password" autocomplete="current-password" required minlength="8" />
+        </div>
+        <button type="submit" class="primary" style="width:100%" id="auth-submit">Log in</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ APP SCREEN ============ -->
+  <div id="app-screen" hidden>
+    <div class="topbar">
+      <div class="brand"><span class="mark">◆</span><h1>SubWise</h1></div>
+      <div class="actions">
+        <span id="plan-badge" class="plan-badge">Free plan</span>
+        <button id="add-sub-btn" class="primary small">+ Add subscription</button>
+        <button id="logout-btn" class="ghost small">Log out</button>
+      </div>
+    </div>
+
+    <div id="renewal-banner" class="banner" hidden></div>
+
+    <div class="stat-row">
+      <div class="stat-tile">
+        <div class="label">Monthly spend</div>
+        <div class="value num" id="stat-monthly">$0.00</div>
+        <div class="sub">across all active subscriptions</div>
+      </div>
+      <div class="stat-tile">
+        <div class="label">Projected yearly</div>
+        <div class="value num" id="stat-yearly">$0.00</div>
+        <div class="sub" id="stat-count">0 tracked</div>
+      </div>
+      <div class="stat-tile">
+        <div class="label">Flagged to cancel</div>
+        <div class="value num" id="stat-flagged">$0.00<span style="font-size:14px;">/mo</span></div>
+        <div class="sub" id="stat-flagged-count">potential savings</div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Your subscriptions</h2>
+        </div>
+        <div id="sub-list"></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="panel">
+          <div class="panel-head"><h2>By category</h2></div>
+          <div id="category-breakdown"></div>
+        </div>
+
+        <div id="upgrade-panel" class="panel upgrade-panel">
+          <div class="label" style="color:var(--ink-soft); font-size:12px; text-transform:uppercase; letter-spacing:.03em; font-weight:600;">Premium</div>
+          <div class="price">$4/mo</div>
+          <ul>
+            <li>Unlimited tracked subscriptions</li>
+            <li>AI-drafted cancellation &amp; negotiation emails</li>
+            <li>Price-hike history on every subscription</li>
+          </ul>
+          <button id="upgrade-btn" class="primary">Upgrade</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Add/Edit subscription modal ============ -->
+  <div id="sub-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal">
+      <h2 id="sub-modal-title">Add subscription</h2>
+      <div id="sub-modal-error" class="auth-error" hidden></div>
+      <form id="sub-form">
+        <input type="hidden" id="sub-id" />
+        <div class="field">
+          <label for="sub-name">Name</label>
+          <input id="sub-name" required placeholder="Netflix" />
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="sub-cost">Cost</label>
+            <input id="sub-cost" type="number" min="0" step="0.01" required placeholder="15.99" />
+          </div>
+          <div class="field">
+            <label for="sub-cycle">Billing cycle</label>
+            <select id="sub-cycle">
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="sub-category">Category</label>
+            <select id="sub-category">
+              <option value="entertainment">Entertainment</option>
+              <option value="software">Software</option>
+              <option value="fitness">Fitness</option>
+              <option value="news">News</option>
+              <option value="cloud">Cloud/Storage</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sub-date">Next renewal</label>
+            <input id="sub-date" type="date" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="sub-notes">Notes (optional)</label>
+          <textarea id="sub-notes" rows="2" placeholder="Shared with family plan..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="ghost" id="sub-cancel-btn">Cancel</button>
+          <button type="submit" class="primary" id="sub-save-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ AI cancellation email modal ============ -->
+  <div id="email-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal">
+      <h2>Cancellation email</h2>
+      <div id="email-body" class="email-draft">Drafting…</div>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="email-close-btn">Close</button>
+        <button type="button" class="primary" id="email-copy-btn">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
